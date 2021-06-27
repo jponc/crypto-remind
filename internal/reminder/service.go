@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/dghubble/go-twitter/twitter"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 var cryptoCodeOverride = map[string]string{
@@ -68,10 +70,27 @@ func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.S
 		log.Fatalf("failed to parse tweets: %v", err)
 	}
 
-	included, others := s.getTransactionsSummary(*transactions)
+	includedSummary, othersSummary := s.getTransactionsSummary(*transactions)
 
-	log.Infof("included: %v", included)
-	log.Infof("others: %v", others)
+	includedTextArr := []string{}
+	othersTextArr := []string{}
+	p := message.NewPrinter(language.English)
+
+	for _, s := range includedSummary {
+		includedTextArr = append(includedTextArr, p.Sprintf("%s: %.2f", s.CryptoCode, s.Amount))
+	}
+
+	for _, s := range othersSummary {
+		othersTextArr = append(othersTextArr, p.Sprintf("%s: %.2f", s.CryptoCode, s.Amount))
+	}
+
+	msg := fmt.Sprintf(
+		"2H WhaleTrades Summary:\n%s\n\nOthers:\n%s",
+		strings.Join(includedTextArr, "\n"),
+		strings.Join(othersTextArr, "\n"),
+	)
+
+	log.Infof("%s", msg)
 
 }
 

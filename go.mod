@@ -7,4 +7,5 @@ require (
 	github.com/dghubble/go-twitter v0.0.0-20210609183100-2fdbf421508e
 	github.com/dghubble/oauth1 v0.7.0
 	github.com/sirupsen/logrus v1.8.1
+	golang.org/x/text v0.3.6 // indirect
 )
