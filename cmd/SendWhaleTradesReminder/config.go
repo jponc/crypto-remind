@@ -8,9 +8,9 @@ import (
 
 // Config
 type Config struct {
-	PhoneNumbers []string
-	CryptoCodes  []string
-
+	AWSRegion             string
+	PhoneNumbers          []string
+	CryptoCodes           []string
 	TwitterAccessToken    string
 	TwitterAccessSecret   string
 	TwitterConsumerKey    string
@@ -19,6 +19,11 @@ type Config struct {
 
 // NewConfig initialises a new config
 func NewConfig() (*Config, error) {
+	awsRegion, err := getEnv("AWS_REGION")
+	if err != nil {
+		return nil, err
+	}
+
 	twitterAccessToken, err := getEnv("TWITTER_ACCESS_TOKEN")
 	if err != nil {
 		return nil, err
@@ -54,6 +59,7 @@ func NewConfig() (*Config, error) {
 	cryptoCodes := strings.Split(cryptoCodesStr, ",")
 
 	return &Config{
+		AWSRegion:             awsRegion,
 		PhoneNumbers:          phoneNumbers,
 		CryptoCodes:           cryptoCodes,
 		TwitterAccessToken:    twitterAccessToken,

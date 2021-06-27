@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/dghubble/go-twitter/twitter"
+	"github.com/jponc/crypto-remind/pkg/sns"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -37,14 +38,16 @@ type Summary struct {
 // Service holds all dependency of this service
 type Service struct {
 	twitterClient *twitter.Client
+	snsClient     *sns.Client
 	phoneNumbers  []string
 	cryptoCodes   []string
 }
 
 // NewService instantiates a new reminder service
-func NewService(twitterClient *twitter.Client, phoneNumbers []string, cryptoCodes []string) *Service {
+func NewService(twitterClient *twitter.Client, snsClient *sns.Client, phoneNumbers []string, cryptoCodes []string) *Service {
 	s := &Service{
 		twitterClient: twitterClient,
+		snsClient:     snsClient,
 		phoneNumbers:  phoneNumbers,
 		cryptoCodes:   cryptoCodes,
 	}
@@ -53,6 +56,22 @@ func NewService(twitterClient *twitter.Client, phoneNumbers []string, cryptoCode
 }
 
 func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.SNSEvent) {
+	if s.twitterClient == nil {
+		log.Fatalf("snsClient not initialised")
+	}
+
+	if s.snsClient == nil {
+		log.Fatalf("snsClient not initialised")
+	}
+
+	if len(s.cryptoCodes) == 0 {
+		log.Fatalf("cryptoCodes not initialised")
+	}
+
+	if len(s.phoneNumbers) == 0 {
+		log.Fatalf("phoneNumbers not initialised")
+	}
+
 	params := &twitter.UserTimelineParams{
 		ScreenName: whaleTradesTwitterScreenName,
 		Count:      100,
@@ -90,8 +109,15 @@ func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.S
 		strings.Join(othersTextArr, "\n"),
 	)
 
-	log.Infof("%s", msg)
+	for _, p := range s.phoneNumbers {
+		err := s.snsClient.SendSMS(ctx, msg, p)
+		if err != nil {
+			log.Fatalf("failed to send message to %v", p)
+			continue
+		}
 
+		log.Infof("Successfully sent message to: %s", p)
+	}
 }
 
 func (s *Service) getTransactionsSummary(transactions []Transaction) (includedSummary []Summary, othersSummary []Summary) {
