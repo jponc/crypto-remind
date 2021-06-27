@@ -1,0 +1,19 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+build/
+.build/
+bin/
+
+.env
+.dynamodb
+tmp/
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+
+.DS_Store

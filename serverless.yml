@@ -1,0 +1,41 @@
+service: crypto-remind
+
+variablesResolutionMode: 20210326
+
+plugins:
+  - serverless-prune-plugin
+
+package:
+  patterns:
+    - '!./**'
+    - './bin/**'
+
+provider:
+  name: aws
+  runtime: go1.x
+  profile: jponc
+  memorySize: 128
+  region: ap-southeast-2 # Sydney
+  stage: ${opt:stage, 'staging'}
+  lambdaHashingVersion: "20201221"
+  apiGateway:
+    shouldStartNameWithService: true
+  tracing:
+    apiGateway: true
+    lambda: true
+
+  iam:
+    role:
+      statements:
+        # Allow all SNS and SES
+        - Effect: "Allow"
+          Resource: "*"
+          Action:
+            - sns:*
+
+functions:
+
+custom:
+  prune:
+    automatic: true
+    number: 2
