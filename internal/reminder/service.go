@@ -68,8 +68,53 @@ func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.S
 		log.Fatalf("failed to parse tweets: %v", err)
 	}
 
-	log.Infof("%v", transactions)
+	included, others := s.getTransactionsSummary(*transactions)
 
+	log.Infof("included: %v", included)
+	log.Infof("others: %v", others)
+
+}
+
+func (s *Service) getTransactionsSummary(transactions []Transaction) (includedSummary []Summary, othersSummary []Summary) {
+	includedMap := map[string]float64{}
+	othersMap := map[string]float64{}
+	cryptoCodesMap := map[string]bool{}
+
+	// create set for cryptoCodes we're interested in
+	for _, c := range s.cryptoCodes {
+		cryptoCodesMap[c] = true
+	}
+
+	// generate included or others map depending on the cryptoCode
+	for _, t := range transactions {
+		amount := t.Amount
+		if strings.Contains(t.Position, "SHORTED") {
+			amount = amount * -1
+		}
+
+		if _, found := cryptoCodesMap[t.CryptoCode]; found {
+			includedMap[t.CryptoCode] = includedMap[t.CryptoCode] + amount
+		} else {
+			othersMap[t.CryptoCode] = othersMap[t.CryptoCode] + amount
+		}
+	}
+
+	for code, total := range includedMap {
+		includedSummary = append(includedSummary, Summary{
+			CryptoCode: code,
+			Amount:     total,
+		})
+	}
+
+	for code, total := range othersMap {
+		othersSummary = append(othersSummary, Summary{
+			CryptoCode: code,
+			Amount:     total,
+		})
+
+	}
+
+	return includedSummary, othersSummary
 }
 
 func parseTweets(tweets []twitter.Tweet, fromTime time.Time) (*[]Transaction, error) {
@@ -83,7 +128,7 @@ func parseTweets(tweets []twitter.Tweet, fromTime time.Time) (*[]Transaction, er
 
 		if createdAt.After(fromTime) {
 			// Get all relevant information
-			re, err := regexp.Compile(`(\$[\d,?]+) ([\$|#]\w+) (\w+)`)
+			re, err := regexp.Compile(`(\$[\d,?]+) ([\$|#]\w+) (#?\w+)`)
 			if err != nil {
 				log.Infof("failed to compile regex")
 				continue
