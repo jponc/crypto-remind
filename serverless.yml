@@ -13,7 +13,7 @@ package:
 provider:
   name: aws
   runtime: go1.x
-  profile: jponc
+  profile: julian
   memorySize: 128
   region: ap-southeast-2 # Sydney
   stage: ${opt:stage, 'staging'}
@@ -34,8 +34,27 @@ provider:
             - sns:*
 
 functions:
+  SendWhaleTradesReminder:
+    handler: bin/SendWhaleTradesReminder
+    events:
+      - schedule: rate(2 hours)
+    timeout: 60
+    environment:
+      TWITTER_ACCESS_TOKEN: ${self:custom.env.TWITTER_ACCESS_TOKEN}
+      TWITTER_ACCESS_SECRET: ${self:custom.env.TWITTER_ACCESS_SECRET}
+      TWITTER_CONSUMER_KEY: ${self:custom.env.TWITTER_CONSUMER_KEY}
+      TWITTER_CONSUMER_SECRET: ${self:custom.env.TWITTER_CONSUMER_SECRET}
+      PHONE_NUMBERS: ${self:custom.env.PHONE_NUMBERS}
+      CRYPTO_CODES: ${self:custom.env.CRYPTO_CODES}
 
 custom:
+  env:
+    TWITTER_ACCESS_TOKEN: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_ACCESS_TOKEN}
+    TWITTER_ACCESS_SECRET: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_ACCESS_SECRET}
+    TWITTER_CONSUMER_KEY: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_CONSUMER_KEY}
+    TWITTER_CONSUMER_SECRET: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_CONSUMER_SECRET}
+    PHONE_NUMBERS: ${ssm:/${self:service}/${self:provider.stage}/PHONE_NUMBERS}
+    CRYPTO_CODES: ${ssm:/${self:service}/${self:provider.stage}/CRYPTO_CODES}
   prune:
     automatic: true
     number: 2
