@@ -172,48 +172,103 @@ func parseTweets(tweets []twitter.Tweet, fromTime time.Time) (*[]Transaction, er
 		}
 
 		if createdAt.After(fromTime) {
-			// Get all relevant information
-			re, err := regexp.Compile(`(\$[\d,?]+) ([\$|#]\w+) (#?\w+)`)
-			if err != nil {
-				log.Infof("failed to compile regex")
-				continue
+			if strings.Contains(t.Text, "SHORTED") || strings.Contains(t.Text, "LONGED") {
+				transaction, err := parseShortLongTweet(t)
+				if err == nil {
+					transactions = append(transactions, *transaction)
+				} else {
+					log.Errorf("failed to parse long/short tweet: %s", t.Text)
+				}
+			} else if strings.Contains(t.Text, "LIQUIDATED") {
+				transaction, err := parseLiquidatedTweet(t)
+				if err == nil {
+					transactions = append(transactions, *transaction)
+				} else {
+					log.Errorf("failed to parse liquidated tweet: %s", t.Text)
+				}
+			} else {
+				log.Errorf("unknown: %s", t.Text)
 			}
-
-			submatches := re.FindStringSubmatch(t.Text)
-			if len(submatches) == 0 {
-				log.Errorf("failed to find match: %s", t.Text)
-				continue
-			}
-
-			// Get amount
-			amountStr := strings.ReplaceAll(
-				strings.ReplaceAll(submatches[1], "$", ""),
-				",",
-				"",
-			)
-			f, err := strconv.ParseFloat(amountStr, 64)
-			if err != nil {
-				log.Errorf("failed to convert %s to float64", amountStr)
-				continue
-			}
-
-			// Get crypto code
-			code := submatches[2]
-			cryptoCode := code
-			if override, found := cryptoCodeOverride[code]; found {
-				cryptoCode = override
-			}
-
-			// Get position
-			position := submatches[3]
-
-			transactions = append(transactions, Transaction{
-				Amount:     f,
-				CryptoCode: cryptoCode,
-				Position:   position,
-			})
 		}
 	}
 
 	return &transactions, nil
+}
+
+func parseShortLongTweet(t twitter.Tweet) (*Transaction, error) {
+	// Get all relevant information
+	re, err := regexp.Compile(`(\$[\d,?\.]+) ([\$|#]\w+) (#?\w+)`)
+	if err != nil {
+		return nil, fmt.Errorf("can't compile regex: %v", err)
+	}
+
+	submatches := re.FindStringSubmatch(t.Text)
+	if len(submatches) == 0 {
+		return nil, fmt.Errorf("failed to find match: %s", t.Text)
+	}
+
+	// Get amount
+	amountStr := strings.ReplaceAll(
+		strings.ReplaceAll(submatches[1], "$", ""),
+		",",
+		"",
+	)
+	f, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert %s to float64", amountStr)
+	}
+
+	// Get crypto code
+	code := submatches[2]
+	cryptoCode := strings.ToUpper(code)
+	if override, found := cryptoCodeOverride[code]; found {
+		cryptoCode = override
+	}
+
+	// Get position
+	position := submatches[3]
+
+	return &Transaction{
+		Amount:     f,
+		CryptoCode: cryptoCode,
+		Position:   position,
+	}, nil
+}
+
+func parseLiquidatedTweet(t twitter.Tweet) (*Transaction, error) {
+	// Get all relevant information
+	re, err := regexp.Compile(`(\$[\d,?\.]+) #LIQUIDATED (\$[\w]+) `)
+	if err != nil {
+		return nil, fmt.Errorf("can't compile regex: %v", err)
+	}
+
+	submatches := re.FindStringSubmatch(t.Text)
+	if len(submatches) == 0 {
+		return nil, fmt.Errorf("failed to find match: %s", t.Text)
+	}
+
+	// Get amount
+	amountStr := strings.ReplaceAll(
+		strings.ReplaceAll(submatches[1], "$", ""),
+		",",
+		"",
+	)
+	f, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert %s to float64", amountStr)
+	}
+
+	// Get crypto code
+	code := submatches[2]
+	cryptoCode := strings.ToUpper(code)
+	if override, found := cryptoCodeOverride[code]; found {
+		cryptoCode = override
+	}
+
+	// Get position
+	return &Transaction{
+		Amount:     f,
+		CryptoCode: cryptoCode,
+		Position:   "SHORTED",
+	}, nil
 }
