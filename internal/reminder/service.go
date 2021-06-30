@@ -10,7 +10,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/dghubble/go-twitter/twitter"
-	"github.com/jponc/crypto-remind/pkg/sns"
+	"github.com/jponc/crypto-remind/pkg/slack"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -37,19 +37,19 @@ type Summary struct {
 
 // Service holds all dependency of this service
 type Service struct {
-	twitterClient *twitter.Client
-	snsClient     *sns.Client
-	phoneNumbers  []string
-	cryptoCodes   []string
+	twitterClient   *twitter.Client
+	slackClient     *slack.Client
+	slackWebhookURL string
+	cryptoCodes     []string
 }
 
 // NewService instantiates a new reminder service
-func NewService(twitterClient *twitter.Client, snsClient *sns.Client, phoneNumbers []string, cryptoCodes []string) *Service {
+func NewService(twitterClient *twitter.Client, slackClient *slack.Client, slackWebhookURL string, cryptoCodes []string) *Service {
 	s := &Service{
-		twitterClient: twitterClient,
-		snsClient:     snsClient,
-		phoneNumbers:  phoneNumbers,
-		cryptoCodes:   cryptoCodes,
+		twitterClient:   twitterClient,
+		slackClient:     slackClient,
+		slackWebhookURL: slackWebhookURL,
+		cryptoCodes:     cryptoCodes,
 	}
 
 	return s
@@ -60,16 +60,16 @@ func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.S
 		log.Fatalf("snsClient not initialised")
 	}
 
-	if s.snsClient == nil {
-		log.Fatalf("snsClient not initialised")
+	if s.slackClient == nil {
+		log.Fatalf("slackClient not initialised")
 	}
 
 	if len(s.cryptoCodes) == 0 {
 		log.Fatalf("cryptoCodes not initialised")
 	}
 
-	if len(s.phoneNumbers) == 0 {
-		log.Fatalf("phoneNumbers not initialised")
+	if s.slackWebhookURL == "" {
+		log.Fatalf("slackWebhookURL not initialised")
 	}
 
 	params := &twitter.UserTimelineParams{
@@ -109,15 +109,12 @@ func (s *Service) SendWhaleTradesReminder(ctx context.Context, snsEvent events.S
 		strings.Join(othersTextArr, "\n"),
 	)
 
-	for _, p := range s.phoneNumbers {
-		err := s.snsClient.SendSMS(ctx, msg, p)
-		if err != nil {
-			log.Fatalf("failed to send message to %v", p)
-			continue
-		}
-
-		log.Infof("Successfully sent message to: %s", p)
+	err = s.slackClient.SendMessageToWebhook(ctx, msg, s.slackWebhookURL)
+	if err != nil {
+		log.Fatalf("failed to send message to slack: %v", err)
 	}
+
+	return
 }
 
 func (s *Service) getTransactionsSummary(transactions []Transaction) (includedSummary []Summary, othersSummary []Summary) {

@@ -9,12 +9,12 @@ import (
 // Config
 type Config struct {
 	AWSRegion             string
-	PhoneNumbers          []string
 	CryptoCodes           []string
 	TwitterAccessToken    string
 	TwitterAccessSecret   string
 	TwitterConsumerKey    string
 	TwitterConsumerSecret string
+	SlackWebhookURL       string
 }
 
 // NewConfig initialises a new config
@@ -44,12 +44,10 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
-	phoneNumbersStr, err := getEnv("PHONE_NUMBERS")
+	slackWebhookURL, err := getEnv("SLACK_WEBHOOK_URL")
 	if err != nil {
 		return nil, err
 	}
-
-	phoneNumbers := strings.Split(phoneNumbersStr, ",")
 
 	cryptoCodesStr, err := getEnv("CRYPTO_CODES")
 	if err != nil {
@@ -60,7 +58,7 @@ func NewConfig() (*Config, error) {
 
 	return &Config{
 		AWSRegion:             awsRegion,
-		PhoneNumbers:          phoneNumbers,
+		SlackWebhookURL:       slackWebhookURL,
 		CryptoCodes:           cryptoCodes,
 		TwitterAccessToken:    twitterAccessToken,
 		TwitterAccessSecret:   twitterAccessSecret,

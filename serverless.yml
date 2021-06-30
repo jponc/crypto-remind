@@ -44,7 +44,7 @@ functions:
       TWITTER_ACCESS_SECRET: ${self:custom.env.TWITTER_ACCESS_SECRET}
       TWITTER_CONSUMER_KEY: ${self:custom.env.TWITTER_CONSUMER_KEY}
       TWITTER_CONSUMER_SECRET: ${self:custom.env.TWITTER_CONSUMER_SECRET}
-      PHONE_NUMBERS: ${self:custom.env.PHONE_NUMBERS}
+      SLACK_WEBHOOK_URL: ${self:custom.env.SLACK_WEBHOOK_URL}
       CRYPTO_CODES: ${self:custom.env.CRYPTO_CODES}
 
 custom:
@@ -53,7 +53,7 @@ custom:
     TWITTER_ACCESS_SECRET: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_ACCESS_SECRET}
     TWITTER_CONSUMER_KEY: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_CONSUMER_KEY}
     TWITTER_CONSUMER_SECRET: ${ssm:/${self:service}/${self:provider.stage}/TWITTER_CONSUMER_SECRET}
-    PHONE_NUMBERS: ${ssm:/${self:service}/${self:provider.stage}/PHONE_NUMBERS}
+    SLACK_WEBHOOK_URL: ${ssm:/${self:service}/${self:provider.stage}/SLACK_WEBHOOK_URL}
     CRYPTO_CODES: ${ssm:/${self:service}/${self:provider.stage}/CRYPTO_CODES}
   prune:
     automatic: true

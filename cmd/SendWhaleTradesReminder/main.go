@@ -1,11 +1,13 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
 	"github.com/jponc/crypto-remind/internal/reminder"
-	"github.com/jponc/crypto-remind/pkg/sns"
+	"github.com/jponc/crypto-remind/pkg/slack"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,11 +25,9 @@ func main() {
 	twitterClient := twitter.NewClient(httpClient)
 
 	// snsClient
-	snsClient, err := sns.NewClient(config.AWSRegion)
-	if err != nil {
-		log.Fatalf("failed to initialise snsClient")
-	}
+	slackHttpClient := &http.Client{}
+	slackClient := slack.NewClient(slackHttpClient)
 
-	reminderService := reminder.NewService(twitterClient, snsClient, config.PhoneNumbers, config.CryptoCodes)
+	reminderService := reminder.NewService(twitterClient, slackClient, config.SlackWebhookURL, config.CryptoCodes)
 	lambda.Start(reminderService.SendWhaleTradesReminder)
 }
