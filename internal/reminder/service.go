@@ -176,13 +176,6 @@ func parseTweets(tweets []twitter.Tweet, fromTime time.Time) (*[]Transaction, er
 				} else {
 					log.Errorf("failed to parse long/short tweet: %s", t.Text)
 				}
-			} else if strings.Contains(t.Text, "LIQUIDATED") {
-				transaction, err := parseLiquidatedTweet(t)
-				if err == nil {
-					transactions = append(transactions, *transaction)
-				} else {
-					log.Errorf("failed to parse liquidated tweet: %s", t.Text)
-				}
 			} else {
 				log.Errorf("unknown: %s", t.Text)
 			}
